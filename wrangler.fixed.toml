@@ -1,0 +1,7 @@
+name = "not-found-test"
+compatibility_date = "2026-05-05"
+compatibility_flags = ["nodejs_compat"]
+main = "./workers/app.ts"
+
+[assets]
+not_found_handling = "none"
