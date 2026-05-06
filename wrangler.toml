@@ -1,10 +1,12 @@
 name = "not-found-test"
 compatibility_date = "2026-05-05"
 compatibility_flags = ["nodejs_compat"]
-main = "./workers/app.ts"
+main = "./server.ts"
 
 [assets]
 directory = "./build/client"
-not_found_handling = "single-page-application"
 binding = "ASSETS"
 run_worker_first = ["/assets/broken/*", "/assets/fixed/*"]
+
+[build]
+command = "pnpm run build"
