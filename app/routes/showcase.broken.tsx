@@ -11,6 +11,8 @@ import {
 } from "~/components/error-triggers";
 import { HydrationMismatch } from "~/components/hydration-mismatch";
 
+const PREFIX = "/assets/broken";
+
 function ShowcaseContent() {
   const { events, addEvent, clear } = useErrorLog();
   useGlobalErrorCapture();
@@ -26,71 +28,65 @@ function ShowcaseContent() {
             <span className="text-red-600">&#x2717;</span> Broken Mode
           </h1>
           <p className="text-xs text-gray-600 mt-1">
-            Simulates <span className="text-red-600">not_found_handling = "single-page-application"</span>
-            &nbsp;fallback &mdash; Worker returns index.html for every missing request
+            <span className="text-red-600">/assets/broken/*</span> → Worker
+            serves index.html for every missing request
           </p>
         </div>
-        <div className="flex gap-2">
-          <a
-            href="/showcase/fixed"
-            className="text-xs px-3 py-1.5 border border-neutral-800 bg-yellow-50 hover:bg-yellow-100 active:translate-y-px"
-          >
-            Fixed &rarr;
-          </a>
-          <a
-            href="/showcase/advanced"
-            className="text-xs px-3 py-1.5 border border-neutral-800 bg-green-50 hover:bg-green-100 active:translate-y-px"
-          >
-            Advanced &rarr;
-          </a>
-        </div>
+        <a
+          href="/showcase/fixed"
+          className="text-xs px-3 py-1.5 border border-neutral-800 bg-green-50 hover:bg-green-100 active:translate-y-px"
+        >
+          Fixed mode &rarr;
+        </a>
       </div>
 
       <div className="mb-8 p-4 border border-neutral-800 bg-red-50 text-xs text-gray-700 leading-relaxed">
-        <strong className="text-red-600">Classic SPA pitfall:</strong>
-        The Worker serves <span className="text-red-600">index.html</span> for every request that doesn&apos;t
-        match an existing asset&mdash;including <span className="text-red-600">.js</span> chunks,
-        <span className="text-red-600">.css</span> files, and API calls.
-        Click the buttons to trigger real browser errors.
+        <p>
+          Requests under <span className="text-red-600">{PREFIX}/*</span> are
+          routed to the Worker via
+          <span className="text-red-600"> run_worker_first</span>.
+          The Worker serves <span className="text-red-600">index.html</span>{" "}
+          for all of them — including .js chunks and .json files.
+        </p>
       </div>
 
       <div className="border border-neutral-800 divide-y divide-neutral-800 mb-8">
         <button
-          onClick={() => triggerOldChunkLoad()}
+          onClick={() => triggerOldChunkLoad(PREFIX)}
           className="w-full text-left p-4 bg-red-50 hover:bg-red-100 active:translate-y-px"
         >
           <span className="text-sm font-bold text-red-600">Load old chunk</span>
           <p className="text-xs text-gray-600 mt-1">
-            Injects &lt;script&gt; pointing to non-existent hash
+            Injects &lt;script src="{PREFIX}/old-chunk-xxx<span className="text-red-600">.js</span>"&gt;
           </p>
           <span className="text-xs text-gray-400 mt-1 block">
-            &rarr; "'text/html' is not a valid JavaScript MIME type"
+            &rarr; gets text/html → MIME error
           </span>
         </button>
 
         <button
-          onClick={() => triggerOldModuleImport(addEvent)}
+          onClick={() => triggerOldModuleImport(addEvent, PREFIX)}
           className="w-full text-left p-4 bg-red-50 hover:bg-red-100 active:translate-y-px"
         >
           <span className="text-sm font-bold text-red-600">Import old module</span>
           <p className="text-xs text-gray-600 mt-1">
-            Dynamic import of non-existent chunk path
+            Dynamic import({PREFIX}/old-chunk-xxx<span className="text-red-600">.js</span>)
           </p>
           <span className="text-xs text-gray-400 mt-1 block">
-            &rarr; "Importing a module script failed"
+            &rarr; gets HTML → import fails
           </span>
         </button>
 
         <button
-          onClick={() => triggerFetchHtmlResponse(addEvent)}
+          onClick={() => triggerFetchHtmlResponse(addEvent, PREFIX)}
           className="w-full text-left p-4 bg-red-50 hover:bg-red-100 active:translate-y-px"
         >
-          <span className="text-sm font-bold text-red-600">Fetch API &rarr; HTML</span>
+          <span className="text-sm font-bold text-red-600">Fetch JSON → HTML</span>
           <p className="text-xs text-gray-600 mt-1">
-            fetch("/api/nonexistent-endpoint") &mdash; gets HTML instead of JSON
+            fetch({PREFIX}/api-mock<span className="text-red-600">.json</span>)
           </p>
           <span className="text-xs text-gray-400 mt-1 block">
-            &rarr; "Load failed &mdash; expected JSON, got text/html"
+            &rarr; gets text/html instead of JSON
           </span>
         </button>
 
@@ -101,16 +97,13 @@ function ShowcaseContent() {
         </div>
 
         <button
-          onClick={() => simulateRedeploy(addEvent)}
+          onClick={() => simulateRedeploy(addEvent, PREFIX)}
           className="w-full text-left p-4 bg-red-50 hover:bg-red-100 active:translate-y-px"
         >
           <span className="text-sm font-bold text-red-600">Simulate redeploy</span>
           <p className="text-xs text-gray-600 mt-1">
-            Triggers all errors &mdash; simulates new deployment with fresh hashes
+            Triggers all errors — simulates new deployment with fresh chunk hashes
           </p>
-          <span className="text-xs text-gray-400 mt-1 block">
-            &rarr; All of the above
-          </span>
         </button>
       </div>
 

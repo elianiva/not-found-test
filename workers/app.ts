@@ -22,45 +22,24 @@ function serveIndexHtml(request: Request, env: CloudflareEnvironment): Promise<R
   return env.ASSETS.fetch(new Request(new URL("/index.html", request.url), request));
 }
 
-/** Determine demo mode from the referring page. */
-function getMode(request: Request): "broken" | "fixed" | "advanced" {
-  const referer = request.headers.get("Referer") ?? "";
-  if (referer.includes("/showcase/broken")) return "broken";
-  if (referer.includes("/showcase/fixed")) return "fixed";
-  return "advanced";
-}
-
 export default {
   async fetch(request: Request, env: CloudflareEnvironment): Promise<Response> {
     const url = new URL(request.url);
-    const mode = getMode(request);
 
-    // Built-in API endpoint — works in all modes
-    if (url.pathname === "/api/hello") {
-      return Response.json({ message: "Worker API (advanced routing)" });
-    }
-
-    // Unknown API routes — mode-dependent
-    if (url.pathname.startsWith("/api/")) {
-      if (mode === "advanced") {
-        return Response.json({ error: "Endpoint not found" }, { status: 404 });
-      }
-      // broken/fixed: API calls get SPA fallback (HTML)
+    if (url.pathname.startsWith("/assets/broken/")) {
       return serveIndexHtml(request, env);
     }
 
-    // Non-API requests (non-navigation missing assets)
-    switch (mode) {
-      case "broken":
-        return serveIndexHtml(request, env);
-      case "fixed":
-        if (hasStaticFileExtension(url.pathname)) {
-          return new Response("Not Found", { status: 404 });
-        }
-        return serveIndexHtml(request, env);
-      case "advanced":
-      default:
+    if (url.pathname.startsWith("/assets/fixed/")) {
+      if (hasStaticFileExtension(url.pathname)) {
         return new Response("Not Found", { status: 404 });
+      }
+      return serveIndexHtml(request, env);
     }
+
+    // Normal fallthrough: try asset first, SPA fallback if missing
+    const res = await env.ASSETS.fetch(request);
+    if (res.status === 404) return serveIndexHtml(request, env);
+    return res;
   },
 };

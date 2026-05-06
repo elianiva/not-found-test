@@ -194,10 +194,10 @@ export function ErrorLogPanel({ events, onClear }: { events: LogEvent[]; onClear
 /** Inject a <script> tag pointing to a non-existent chunk.
  *  The global error handler catches the REAL browser ErrorEvent,
  *  which includes the actual MIME type error from the browser. */
-export function triggerOldChunkLoad() {
+export function triggerOldChunkLoad(prefix = "/assets") {
   const hash = Math.random().toString(36).slice(2, 10);
   const script = document.createElement("script");
-  script.src = `/assets/old-chunk-${hash}.js`;
+  script.src = `${prefix}/old-chunk-${hash}.js`;
   // No onerror — the global window.addEventListener("error") catches it with
   // the real browser ErrorEvent.message (e.g. MIME type error)
   document.head.appendChild(script);
@@ -205,9 +205,9 @@ export function triggerOldChunkLoad() {
 
 /** Dynamic import of a non-existent chunk.
  *  Catches the REAL import error and reports it. */
-export async function triggerOldModuleImport(addEvent: (e: Omit<LogEvent, "id" | "timestamp">) => void) {
+export async function triggerOldModuleImport(addEvent: (e: Omit<LogEvent, "id" | "timestamp">) => void, prefix = "/assets") {
   const hash = Math.random().toString(36).slice(2, 10);
-  const src = `/assets/old-chunk-${hash}.js`;
+  const src = `${prefix}/old-chunk-${hash}.js`;
 
   try {
     await import(/* @vite-ignore */ src);
@@ -222,37 +222,38 @@ export async function triggerOldModuleImport(addEvent: (e: Omit<LogEvent, "id" |
 }
 
 /** Fetch a non-existent endpoint and report what the server ACTUALLY returned. */
-export async function triggerFetchHtmlResponse(addEvent: (e: Omit<LogEvent, "id" | "timestamp">) => void) {
+export async function triggerFetchHtmlResponse(addEvent: (e: Omit<LogEvent, "id" | "timestamp">) => void, prefix = "/assets") {
+  const url = `${prefix}/api-mock.json`;
   try {
-    const res = await fetch("/api/nonexistent-endpoint");
+    const res = await fetch(url);
     const contentType = res.headers.get("content-type") || "unknown";
     const text = await res.text();
     addEvent({
       type: "fetch-failed",
-      message: `GET /api/nonexistent-endpoint → ${res.status} (${contentType})`,
+      message: `GET ${url} → ${res.status} (${contentType})`,
       detail: `Status: ${res.status}\nContent-Type: ${contentType}\nFirst 300 chars:\n${text.slice(0, 300)}`,
       contentType,
-      url: "/api/nonexistent-endpoint",
+      url,
     });
   } catch (e: any) {
     addEvent({
       type: "fetch-failed",
       message: `fetch() threw: ${e.message}`,
       detail: e.stack,
-      url: "/api/nonexistent-endpoint",
+      url,
     });
   }
 }
 
 /** Trigger all error scenarios in sequence. */
-export function simulateRedeploy(addEvent: (e: Omit<LogEvent, "id" | "timestamp">) => void) {
+export function simulateRedeploy(addEvent: (e: Omit<LogEvent, "id" | "timestamp">) => void, prefix = "/assets") {
   addEvent({
     type: "console-error",
     message: "Simulating redeploy... new chunk hashes generated, old URLs now return HTML",
     detail: "A new deployment renames all chunk files with new content hashes. Any cached HTML referencing old chunks will cause MIME type errors.",
   });
 
-  triggerOldChunkLoad();
-  setTimeout(() => triggerOldModuleImport(addEvent), 300);
-  setTimeout(() => triggerFetchHtmlResponse(addEvent), 600);
+  triggerOldChunkLoad(prefix);
+  setTimeout(() => triggerOldModuleImport(addEvent, prefix), 300);
+  setTimeout(() => triggerFetchHtmlResponse(addEvent, prefix), 600);
 }

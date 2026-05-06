@@ -11,6 +11,8 @@ import {
 } from "~/components/error-triggers";
 import { HydrationMismatch } from "~/components/hydration-mismatch";
 
+const PREFIX = "/assets/fixed";
+
 function ShowcaseContent() {
   const { events, addEvent, clear } = useErrorLog();
   useGlobalErrorCapture();
@@ -23,44 +25,39 @@ function ShowcaseContent() {
             &larr; back
           </a>
           <h1 className="text-lg font-bold uppercase tracking-wide mt-2">
-            <span className="text-yellow-700">&#x2713;</span> Fixed Mode
+            <span className="text-green-700">&#x2713;</span> Fixed Mode
           </h1>
           <p className="text-xs text-gray-600 mt-1">
-            Worker returns <span className="text-yellow-700">404</span> for static file extensions
-            before SPA fallback &mdash; but still runs for every miss
+            <span className="text-green-700">/assets/fixed/*</span> → Worker
+            returns 404 for static file extensions
           </p>
         </div>
-        <div className="flex gap-2">
-          <a
-            href="/showcase/broken"
-            className="text-xs px-3 py-1.5 border border-neutral-800 bg-red-50 hover:bg-red-100 active:translate-y-px"
-          >
-            &larr; Broken
-          </a>
-          <a
-            href="/showcase/advanced"
-            className="text-xs px-3 py-1.5 border border-neutral-800 bg-green-50 hover:bg-green-100 active:translate-y-px"
-          >
-            Advanced &rarr;
-          </a>
-        </div>
+        <a
+          href="/showcase/broken"
+          className="text-xs px-3 py-1.5 border border-neutral-800 bg-red-50 hover:bg-red-100 active:translate-y-px"
+        >
+          &larr; Broken mode
+        </a>
       </div>
 
-      <div className="mb-8 p-4 border border-neutral-800 bg-yellow-50 text-xs text-gray-700 leading-relaxed">
-        <strong className="text-yellow-700">The naive fix:</strong> Worker checks for static file extensions
-        (<span className="text-yellow-700">.js, .css, .json, etc.</span>) and returns 404 before
-        the SPA fallback. But the Worker still handles <strong>every</strong> non-navigation miss,
-        including API calls which still get HTML.
+      <div className="mb-8 p-4 border border-neutral-800 bg-green-50 text-xs text-gray-700 leading-relaxed">
+        <p>
+          <strong className="text-green-700">How the fix works:</strong>{" "}
+          <span className="text-green-700">run_worker_first</span> routes{" "}
+          <span className="text-green-700">/assets/fixed/*</span> to the Worker.
+          The Worker checks for static file extensions and returns{" "}
+          <span className="text-green-700">404</span> instead of index.html.
+        </p>
       </div>
 
       <div className="border border-neutral-800 divide-y divide-neutral-800 mb-8">
         <button
-          onClick={() => triggerOldChunkLoad()}
-          className="w-full text-left p-4 bg-yellow-50 hover:bg-yellow-100 active:translate-y-px"
+          onClick={() => triggerOldChunkLoad(PREFIX)}
+          className="w-full text-left p-4 bg-green-50 hover:bg-green-100 active:translate-y-px"
         >
-          <span className="text-sm font-bold text-yellow-700">Load old chunk</span>
+          <span className="text-sm font-bold text-green-700">Load old chunk</span>
           <p className="text-xs text-gray-600 mt-1">
-            Injects &lt;script&gt; &mdash; returns 404 instead of HTML
+            Injects &lt;script src="{PREFIX}/old-chunk-xxx<span className="text-green-700">.js</span>"&gt;
           </p>
           <span className="text-xs text-gray-400 mt-1 block">
             &rarr; 404 Not Found (no MIME error)
@@ -68,12 +65,12 @@ function ShowcaseContent() {
         </button>
 
         <button
-          onClick={() => triggerOldModuleImport(addEvent)}
-          className="w-full text-left p-4 bg-yellow-50 hover:bg-yellow-100 active:translate-y-px"
+          onClick={() => triggerOldModuleImport(addEvent, PREFIX)}
+          className="w-full text-left p-4 bg-green-50 hover:bg-green-100 active:translate-y-px"
         >
-          <span className="text-sm font-bold text-yellow-700">Import old module</span>
+          <span className="text-sm font-bold text-green-700">Import old module</span>
           <p className="text-xs text-gray-600 mt-1">
-            Dynamic import &mdash; returns 404 instead of HTML
+            Dynamic import({PREFIX}/old-chunk-xxx<span className="text-green-700">.js</span>)
           </p>
           <span className="text-xs text-gray-400 mt-1 block">
             &rarr; 404 Not Found (no import error)
@@ -81,16 +78,15 @@ function ShowcaseContent() {
         </button>
 
         <button
-          onClick={() => triggerFetchHtmlResponse(addEvent)}
-          className="w-full text-left p-4 bg-red-50 hover:bg-red-100 active:translate-y-px"
+          onClick={() => triggerFetchHtmlResponse(addEvent, PREFIX)}
+          className="w-full text-left p-4 bg-green-50 hover:bg-green-100 active:translate-y-px"
         >
-          <span className="text-sm font-bold text-red-600">Fetch API &rarr; HTML</span>
+          <span className="text-sm font-bold text-green-700">Fetch JSON → 404</span>
           <p className="text-xs text-gray-600 mt-1">
-            fetch("/api/nonexistent-endpoint") &mdash; /api/* is not a static file extension,
-            still gets SPA fallback
+            fetch({PREFIX}/api-mock<span className="text-green-700">.json</span>)
           </p>
           <span className="text-xs text-gray-400 mt-1 block">
-            &rarr; Still loads HTML (<span className="text-yellow-700">run_worker_first</span> needed for API)
+            &rarr; 404 Not Found (no HTML)
           </span>
         </button>
 
@@ -101,16 +97,13 @@ function ShowcaseContent() {
         </div>
 
         <button
-          onClick={() => simulateRedeploy(addEvent)}
-          className="w-full text-left p-4 bg-yellow-50 hover:bg-yellow-100 active:translate-y-px"
+          onClick={() => simulateRedeploy(addEvent, PREFIX)}
+          className="w-full text-left p-4 bg-green-50 hover:bg-green-100 active:translate-y-px"
         >
-          <span className="text-sm font-bold text-yellow-700">Simulate redeploy</span>
+          <span className="text-sm font-bold text-green-700">Simulate redeploy</span>
           <p className="text-xs text-gray-600 mt-1">
-            Triggers all errors &mdash; static assets 404, API still broken
+            Triggers all errors — static assets 404, no MIME errors
           </p>
-          <span className="text-xs text-gray-400 mt-1 block">
-            &rarr; Static assets 404, API routes still get HTML
-          </span>
         </button>
       </div>
 
