@@ -1,4 +1,4 @@
-import { createContext, useContext, useCallback, useEffect, useState, type ReactNode } from "react";
+import { createContext, useContext, useCallback, useEffect, useState, Component, type ReactNode } from "react";
 
 export interface ErrorEvent {
   id: string;
@@ -79,7 +79,7 @@ export function useGlobalErrorCapture() {
 }
 
 // React Error Boundary
-export class ErrorBoundary extends React.Component<
+export class ErrorBoundary extends Component<
   { children: ReactNode; onError?: (error: Error) => void },
   { hasError: boolean }
 > {
@@ -97,6 +97,92 @@ export class ErrorBoundary extends React.Component<
     if (this.state.hasError) return null;
     return this.props.children;
   }
+}
+
+const TYPE_COLORS: Record<ErrorEvent["type"], { bg: string; dot: string; label: string }> = {
+  "script-load": { bg: "bg-red-950/50", dot: "bg-red-500", label: "Script Load" },
+  "import-failed": { bg: "bg-orange-950/50", dot: "bg-orange-500", label: "Import Failed" },
+  "fetch-failed": { bg: "bg-yellow-950/50", dot: "bg-yellow-500", label: "Fetch Failed" },
+  hydration: { bg: "bg-purple-950/50", dot: "bg-purple-500", label: "Hydration" },
+  render: { bg: "bg-pink-950/50", dot: "bg-pink-500", label: "Render Error" },
+  "console-error": { bg: "bg-blue-950/50", dot: "bg-blue-500", label: "Info" },
+};
+
+export function ErrorLogPanel({ events, onClear }: { events: ErrorEvent[]; onClear: () => void }) {
+  const [collapsed, setCollapsed] = useState(false);
+
+  return (
+    <div className="rounded-lg border border-gray-700 bg-gray-900">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-700">
+        <button
+          onClick={() => setCollapsed(!collapsed)}
+          className="flex items-center gap-2 text-sm font-medium text-gray-300 hover:text-white"
+        >
+          <span className="text-lg">{collapsed ? "▶" : "▼"}</span>
+          Live Error Log
+          {events.length > 0 && (
+            <span className="px-1.5 py-0.5 text-xs rounded bg-gray-700 text-gray-300">
+              {events.length}
+            </span>
+          )}
+        </button>
+        <button
+          onClick={onClear}
+          className="text-xs text-gray-500 hover:text-gray-300 px-2 py-1 rounded hover:bg-gray-800"
+        >
+          Clear
+        </button>
+      </div>
+      {!collapsed && (
+        <div className="max-h-96 overflow-y-auto p-2 space-y-1">
+          {events.length === 0 && (
+            <p className="text-gray-600 text-xs text-center py-8">
+              No errors yet. Click a trigger button above.
+            </p>
+          )}
+          {events.map((ev) => {
+            const style = TYPE_COLORS[ev.type];
+            return (
+              <div key={ev.id} className={`p-3 rounded ${style.bg}`}>
+                <div className="flex items-start gap-2">
+                  <span className={`mt-1.5 w-2 h-2 rounded-full shrink-0 ${style.dot}`} />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-xs font-medium text-gray-400">{style.label}</span>
+                      <span className="text-xs text-gray-600">
+                        {new Date(ev.timestamp).toLocaleTimeString()}
+                      </span>
+                    </div>
+                    <p className="text-sm text-gray-200 font-mono break-all">{ev.message}</p>
+                    {ev.url && (
+                      <p className="text-xs text-gray-500 mt-1 font-mono break-all">
+                        URL: {ev.url}
+                      </p>
+                    )}
+                    {ev.contentType && (
+                      <p className="text-xs text-gray-500 mt-0.5 font-mono">
+                        Content-Type: {ev.contentType}
+                      </p>
+                    )}
+                    {ev.detail && (
+                      <details className="mt-1">
+                        <summary className="text-xs text-gray-600 cursor-pointer hover:text-gray-400">
+                          Details
+                        </summary>
+                        <pre className="mt-1 text-xs text-gray-500 whitespace-pre-wrap font-mono">
+                          {ev.detail}
+                        </pre>
+                      </details>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
 }
 
 // Trigger a simulated old chunk load
