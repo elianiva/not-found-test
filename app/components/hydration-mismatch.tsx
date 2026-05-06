@@ -8,7 +8,7 @@ export function HydrationMismatch() {
   }, []);
 
   return (
-    <div className="border-2 border-black p-4 bg-white">
+    <div className="border border-neutral-800 p-4 bg-white">
       <p className="text-[10px] font-bold uppercase tracking-wide text-red-600 mb-3">
         &#x26a0; Hydration Mismatch Zone
       </p>

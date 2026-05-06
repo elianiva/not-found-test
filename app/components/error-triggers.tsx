@@ -1,6 +1,6 @@
 import { createContext, useContext, useCallback, useEffect, useState, Component, type ReactNode } from "react";
 
-export interface ErrorEvent {
+export interface LogEvent {
   id: string;
   timestamp: number;
   type: "script-load" | "import-failed" | "fetch-failed" | "hydration" | "render" | "console-error";
@@ -11,18 +11,18 @@ export interface ErrorEvent {
 }
 
 interface ErrorLogContextValue {
-  events: ErrorEvent[];
-  addEvent: (event: Omit<ErrorEvent, "id" | "timestamp">) => void;
+  events: LogEvent[];
+  addEvent: (event: Omit<LogEvent, "id" | "timestamp">) => void;
   clear: () => void;
 }
 
 const ErrorLogContext = createContext<ErrorLogContextValue | null>(null);
 
 export function ErrorLogProvider({ children }: { children: ReactNode }) {
-  const [events, setEvents] = useState<ErrorEvent[]>([]);
+  const [events, setEvents] = useState<LogEvent[]>([]);
 
-  const addEvent = useCallback((event: Omit<ErrorEvent, "id" | "timestamp">) => {
-    const entry: ErrorEvent = {
+  const addEvent = useCallback((event: Omit<LogEvent, "id" | "timestamp">) => {
+    const entry: LogEvent = {
       ...event,
       id: crypto.randomUUID(),
       timestamp: Date.now(),
@@ -45,22 +45,26 @@ export function useErrorLog() {
   return ctx;
 }
 
+/** Global error capture — reports REAL browser errors.
+ *  Uses DOM ErrorEvent.message for script load failures (includes MIME type error text). */
 export function useGlobalErrorCapture() {
   const { addEvent } = useErrorLog();
 
   useEffect(() => {
-    const onError = (e: Event) => {
+    // Captures <script> load failures — uses DOM ErrorEvent.message which
+    // contains the actual browser error (e.g. '"text/html" is not a valid JS MIME type')
+    const onScriptError = (e: Event) => {
+      const domEvent = e as ErrorEvent;
       const target = e.target as HTMLScriptElement;
       addEvent({
         type: "script-load",
-        message: e.type === "error"
-          ? `Script load failed: "${target?.src?.split("/").pop() || "unknown"}"`
-          : "Script load error",
+        message: domEvent.message || `Script load error`,
         detail: `URL: ${target?.src || "unknown"}`,
         url: target?.src,
       });
     };
 
+    // Captures unhandled promise rejections (including failed dynamic imports)
     const onRejection = (e: PromiseRejectionEvent) => {
       const msg = e.reason?.message || String(e.reason);
       addEvent({
@@ -70,11 +74,11 @@ export function useGlobalErrorCapture() {
       });
     };
 
-    window.addEventListener("error", onError);
+    window.addEventListener("error", onScriptError);
     window.addEventListener("unhandledrejection", onRejection);
 
     return () => {
-      window.removeEventListener("error", onError);
+      window.removeEventListener("error", onScriptError);
       window.removeEventListener("unhandledrejection", onRejection);
     };
   }, [addEvent]);
@@ -100,7 +104,7 @@ export class ErrorBoundary extends Component<
   }
 }
 
-const TYPE_STYLES: Record<ErrorEvent["type"], { label: string; textColor: string; bg: string }> = {
+const TYPE_STYLES: Record<LogEvent["type"], { label: string; textColor: string; bg: string }> = {
   "script-load": { label: "SCRIPT LOAD", textColor: "text-red-600", bg: "bg-red-50" },
   "import-failed": { label: "IMPORT FAILED", textColor: "text-red-600", bg: "bg-red-50" },
   "fetch-failed": { label: "FETCH FAILED", textColor: "text-red-600", bg: "bg-red-50" },
@@ -109,12 +113,12 @@ const TYPE_STYLES: Record<ErrorEvent["type"], { label: string; textColor: string
   "console-error": { label: "INFO", textColor: "text-gray-500", bg: "bg-gray-50" },
 };
 
-export function ErrorLogPanel({ events, onClear }: { events: ErrorEvent[]; onClear: () => void }) {
+export function ErrorLogPanel({ events, onClear }: { events: LogEvent[]; onClear: () => void }) {
   const [collapsed, setCollapsed] = useState(false);
 
   return (
-    <div className="border border-black">
-      <div className="flex items-center justify-between px-4 py-3 border-b border-black bg-gray-50">
+    <div className="border border-neutral-800">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-neutral-800 bg-gray-50">
         <button
           onClick={() => setCollapsed(!collapsed)}
           className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide"
@@ -122,14 +126,14 @@ export function ErrorLogPanel({ events, onClear }: { events: ErrorEvent[]; onCle
           <span>{collapsed ? "\u25b6" : "\u25bc"}</span>
           Error Log
           {events.length > 0 && (
-            <span className="px-1.5 py-0.5 text-[10px] border border-black bg-white">
+            <span className="px-1.5 py-0.5 text-[10px] border border-neutral-800 bg-white">
               {events.length}
             </span>
           )}
         </button>
         <button
           onClick={onClear}
-          className="text-[10px] uppercase tracking-wide text-gray-500 hover:text-black border-b border-transparent hover:border-black"
+          className="text-[10px] uppercase tracking-wide text-gray-500 hover:text-neutral-800 border-b border-transparent hover:border-neutral-800"
         >
           Clear
         </button>
@@ -187,24 +191,21 @@ export function ErrorLogPanel({ events, onClear }: { events: ErrorEvent[]; onCle
   );
 }
 
-export function triggerOldChunkLoad(addEvent: (e: Omit<ErrorEvent, "id" | "timestamp">) => void) {
+/** Inject a <script> tag pointing to a non-existent chunk.
+ *  The global error handler catches the REAL browser ErrorEvent,
+ *  which includes the actual MIME type error from the browser. */
+export function triggerOldChunkLoad() {
   const hash = Math.random().toString(36).slice(2, 10);
-  const src = `/assets/old-chunk-${hash}.js`;
-
   const script = document.createElement("script");
-  script.src = src;
-  script.onerror = () => {
-    addEvent({
-      type: "script-load",
-      message: `"text/html" is not a valid JavaScript MIME type`,
-      detail: `Failed to load: ${src}\nCloudflare returns index.html (text/html) for missing assets when not_found_handling is "single-page-application".`,
-      url: src,
-    });
-  };
+  script.src = `/assets/old-chunk-${hash}.js`;
+  // No onerror — the global window.addEventListener("error") catches it with
+  // the real browser ErrorEvent.message (e.g. MIME type error)
   document.head.appendChild(script);
 }
 
-export async function triggerOldModuleImport(addEvent: (e: Omit<ErrorEvent, "id" | "timestamp">) => void) {
+/** Dynamic import of a non-existent chunk.
+ *  Catches the REAL import error and reports it. */
+export async function triggerOldModuleImport(addEvent: (e: Omit<LogEvent, "id" | "timestamp">) => void) {
   const hash = Math.random().toString(36).slice(2, 10);
   const src = `/assets/old-chunk-${hash}.js`;
 
@@ -213,43 +214,45 @@ export async function triggerOldModuleImport(addEvent: (e: Omit<ErrorEvent, "id"
   } catch (e: any) {
     addEvent({
       type: "import-failed",
-      message: `Importing a module script failed`,
-      detail: `Dynamic import of ${src} failed. Server returned HTML instead of JavaScript.\n${e.message}`,
+      message: e.message || String(e),
+      detail: e.stack,
       url: src,
     });
   }
 }
 
-export async function triggerFetchHtmlResponse(addEvent: (e: Omit<ErrorEvent, "id" | "timestamp">) => void) {
+/** Fetch a non-existent endpoint and report what the server ACTUALLY returned. */
+export async function triggerFetchHtmlResponse(addEvent: (e: Omit<LogEvent, "id" | "timestamp">) => void) {
   try {
     const res = await fetch("/api/nonexistent-endpoint");
     const contentType = res.headers.get("content-type") || "unknown";
     const text = await res.text();
     addEvent({
       type: "fetch-failed",
-      message: `Load failed — expected JSON, got ${contentType}`,
-      detail: `GET /api/nonexistent-endpoint → ${res.status} ${contentType}\nFirst 200 chars: ${text.slice(0, 200)}`,
+      message: `GET /api/nonexistent-endpoint → ${res.status} (${contentType})`,
+      detail: `Status: ${res.status}\nContent-Type: ${contentType}\nFirst 300 chars:\n${text.slice(0, 300)}`,
       contentType,
       url: "/api/nonexistent-endpoint",
     });
   } catch (e: any) {
     addEvent({
       type: "fetch-failed",
-      message: e.message || "Fetch failed",
+      message: `fetch() threw: ${e.message}`,
       detail: e.stack,
       url: "/api/nonexistent-endpoint",
     });
   }
 }
 
-export function simulateRedeploy(addEvent: (e: Omit<ErrorEvent, "id" | "timestamp">) => void) {
+/** Trigger all error scenarios in sequence. */
+export function simulateRedeploy(addEvent: (e: Omit<LogEvent, "id" | "timestamp">) => void) {
   addEvent({
     type: "console-error",
     message: "Simulating redeploy... new chunk hashes generated, old URLs now return HTML",
     detail: "A new deployment renames all chunk files with new content hashes. Any cached HTML referencing old chunks will cause MIME type errors.",
   });
 
-  triggerOldChunkLoad(addEvent);
+  triggerOldChunkLoad();
   setTimeout(() => triggerOldModuleImport(addEvent), 300);
   setTimeout(() => triggerFetchHtmlResponse(addEvent), 600);
 }

@@ -18,7 +18,7 @@ export default function Index() {
       <div className="grid grid-cols-2 gap-px bg-gray-300 mb-12">
         <a
           href="/showcase/broken"
-          className="block p-6 bg-red-50 hover:bg-red-100 border-2 border-black active:translate-y-px"
+          className="block p-6 bg-red-50 hover:bg-red-100 border border-neutral-800 active:translate-y-px"
         >
           <span className="text-sm font-bold text-red-600">&rarr; Broken Mode</span>
           <p className="text-xs text-gray-600 mt-2 leading-relaxed">
@@ -29,7 +29,7 @@ export default function Index() {
 
         <a
           href="/showcase/fixed"
-          className="block p-6 bg-green-50 hover:bg-green-100 border-2 border-black -ml-px active:translate-y-px"
+          className="block p-6 bg-green-50 hover:bg-green-100 border border-neutral-800 -ml-px active:translate-y-px"
         >
           <span className="text-sm font-bold text-green-700">&rarr; Fixed Mode</span>
           <p className="text-xs text-gray-600 mt-2 leading-relaxed">
@@ -41,7 +41,7 @@ export default function Index() {
 
       <section className="mb-12">
         <h2 className="text-sm font-bold uppercase mb-4 tracking-wide">Error Scenarios</h2>
-        <div className="border border-black divide-y divide-black">
+        <div className="border border-neutral-800 divide-y divide-neutral-800">
           {([
             ["Load old chunk", "Inject <script> pointing to non-existent hash &rarr; browser gets HTML"],
             ["Import old module", "Dynamic import() of missing chunk &rarr; server returns HTML"],
@@ -50,7 +50,7 @@ export default function Index() {
             ["Simulate redeploy", "Multi-step: snapshot hashes, rebuild, old URLs returning HTML"],
           ] as const).map(([label, desc]) => (
             <div className="p-3 flex items-start gap-3" key={label}>
-              <span className="text-xs font-bold text-black w-36 shrink-0">{label}</span>
+              <span className="text-xs font-bold text-neutral-800 w-36 shrink-0">{label}</span>
               <span className="text-xs text-gray-600" dangerouslySetInnerHTML={{ __html: desc }} />
             </div>
           ))}
@@ -59,7 +59,7 @@ export default function Index() {
 
       <section>
         <h2 className="text-sm font-bold uppercase mb-4 tracking-wide">The Fix</h2>
-        <pre className="text-xs border border-black p-4 bg-gray-50 overflow-x-auto">{`const STATIC_FILE_EXTENSIONS = new Set([
+        <pre className="text-xs border border-neutral-800 p-4 bg-gray-50 overflow-x-auto">{`const STATIC_FILE_EXTENSIONS = new Set([
   ".js", ".mjs", ".cjs", ".css", ".map", ".json",
   ".png", ".jpg", ".svg", ".ico", ".woff2", ...
 ]);

@@ -19,7 +19,7 @@ function ShowcaseContent() {
     <div className="max-w-3xl mx-auto px-6 py-8">
       <div className="flex items-center justify-between mb-8">
         <div>
-          <a href="/" className="text-xs text-gray-500 hover:text-black border-b border-gray-300 hover:border-black">
+          <a href="/" className="text-xs text-gray-500 hover:text-neutral-800 border-b border-gray-300 hover:border-neutral-800">
             &larr; back
           </a>
           <h1 className="text-lg font-bold uppercase tracking-wide mt-2">
@@ -32,13 +32,13 @@ function ShowcaseContent() {
         </div>
         <a
           href="/showcase/fixed"
-          className="text-xs px-3 py-1.5 border border-black bg-green-50 hover:bg-green-100 active:translate-y-px"
+          className="text-xs px-3 py-1.5 border border-neutral-800 bg-green-50 hover:bg-green-100 active:translate-y-px"
         >
           Fixed mode &rarr;
         </a>
       </div>
 
-      <div className="border border-black divide-y divide-black mb-8">
+      <div className="border border-neutral-800 divide-y divide-neutral-800 mb-8">
         <button
           onClick={() => triggerOldChunkLoad(addEvent)}
           className="w-full text-left p-4 bg-red-50 hover:bg-red-100 active:translate-y-px"
