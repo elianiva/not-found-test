@@ -7,10 +7,8 @@
     "dev": "react-router dev",
     "start": "react-router-serve ./build/server/index.js",
     "typecheck": "react-router typegen && tsc",
-    "deploy:broken": "BUG_MODE=broken wrangler deploy --config wrangler.broken.toml",
-    "deploy:fixed": "BUG_MODE=fixed wrangler deploy --config wrangler.fixed.toml",
-    "preview:broken": "BUG_MODE=broken wrangler dev --config wrangler.broken.toml",
-    "preview:fixed": "BUG_MODE=fixed wrangler dev --config wrangler.fixed.toml"
+    "deploy:broken": "react-router build && wrangler deploy --config wrangler.broken.toml",
+    "deploy:fixed": "react-router build && wrangler deploy --config wrangler.fixed.toml"
   },
   "dependencies": {
     "@react-router/node": "7.15.0",

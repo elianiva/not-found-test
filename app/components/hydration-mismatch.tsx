@@ -8,20 +8,22 @@ export function HydrationMismatch() {
   }, []);
 
   return (
-    <div className="rounded border border-red-500/30 bg-red-500/5 p-4">
-      <p className="font-mono text-sm text-red-400 mb-2">
-        ⚠ Hydration Mismatch Zone
+    <div className="border-2 border-black p-4 bg-white">
+      <p className="text-[10px] font-bold uppercase tracking-wide text-red-600 mb-3">
+        &#x26a0; Hydration Mismatch Zone
       </p>
-      <p className="text-sm text-gray-400">
-        Server rendered: <span className="text-white font-mono">"Server: static"</span>
-      </p>
-      <p className="text-sm text-gray-400">
-        Client rendered:{" "}
-        <span className="text-white font-mono">
-          "Client: {isClient ? Math.random().toString(36).slice(2, 8) : "loading..."}"
-        </span>
-      </p>
-      <p className="text-xs text-gray-500 mt-2">
+      <div className="text-xs space-y-1">
+        <p>
+          Server: <span className="font-bold">"Server: static"</span>
+        </p>
+        <p>
+          Client:{" "}
+          <span className="font-bold">
+            "Client: {isClient ? Math.random().toString(36).slice(2, 8) : "loading..."}"
+          </span>
+        </p>
+      </div>
+      <p className="text-[10px] text-gray-500 mt-3">
         React expects server and client renders to match. When they diverge,
         you get Minified React error #418 during hydration.
       </p>

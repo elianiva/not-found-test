@@ -1,99 +1,65 @@
 export default function Index() {
   return (
-    <div className="min-h-screen bg-gray-950 text-gray-100">
-      <div className="max-w-4xl mx-auto px-4 py-16">
-        <header className="mb-16">
-          <div className="flex items-center gap-3 mb-4">
-            <span className="text-3xl">☁️</span>
-            <h1 className="text-3xl font-bold text-white">
-              CF Workers SPA Bug Showcase
-            </h1>
-          </div>
-          <p className="text-gray-400 text-lg">
-            Interactive demo of the classic Cloudflare Workers SPA pitfall: when{" "}
-            <code className="text-cyan-400 bg-gray-900 px-1.5 py-0.5 rounded text-sm">
-              not_found_handling = "single-page-application"
-            </code>{" "}
-            serves HTML for every missing asset — including JS chunks, CSS files, and API calls.
-          </p>
-        </header>
-
-        <div className="grid md:grid-cols-2 gap-6 mb-16">
-          <a
-            href="/showcase/broken"
-            className="block p-6 rounded-lg bg-red-950/40 border border-red-800/40 hover:border-red-500/60 transition-colors"
-          >
-            <h2 className="text-xl font-semibold text-red-400 mb-2">🐛 Broken Mode</h2>
-            <p className="text-gray-400 text-sm leading-relaxed">
-              Wrangler config with <code className="text-red-400">single-page-application</code> fallback.
-              Click buttons to trigger MIME type errors, failed imports, and HTML-as-JSON responses.
-            </p>
-          </a>
-
-          <a
-            href="/showcase/fixed"
-            className="block p-6 rounded-lg bg-green-950/40 border border-green-800/40 hover:border-green-500/60 transition-colors"
-          >
-            <h2 className="text-xl font-semibold text-green-400 mb-2">✅ Fixed Mode</h2>
-            <p className="text-gray-400 text-sm leading-relaxed">
-              Worker middleware returns proper 404 for static asset extensions (".js", ".css", etc.)
-              while still serving index.html for SPA navigation routes.
-            </p>
-          </a>
+    <div className="max-w-3xl mx-auto px-6 py-12">
+      <header className="mb-12">
+        <div className="flex items-center gap-2 mb-4">
+          <span className="text-xl">☁️</span>
+          <h1 className="text-lg font-bold uppercase tracking-wide">
+            CF Workers SPA Bug Showcase
+          </h1>
         </div>
+        <p className="text-sm leading-relaxed text-gray-600">
+          Interactive demo of the classic Cloudflare Workers SPA pitfall:
+          when <span className="text-red-600">not_found_handling = "single-page-application"</span>
+          {" "}serves HTML for every missing asset&mdash;including JS chunks, CSS files, and API calls.
+        </p>
+      </header>
 
-        <section className="mb-12">
-          <h2 className="text-xl font-semibold text-white mb-4">Error Scenarios</h2>
-          <div className="space-y-3">
-            {[
-              {
-                label: "Load old chunk",
-                desc: "Inject a <script> tag pointing to a non-existent hash — browser gets HTML instead of JS",
-                error: "'text/html' is not a valid JS MIME type",
-              },
-              {
-                label: "Import old module",
-                desc: "Dynamic import() of a chunk that no longer exists — server returns HTML",
-                error: "Importing a module script failed",
-              },
-              {
-                label: "Fetch API → HTML",
-                desc: "fetch('/api/...') where the worker serves index.html instead of JSON",
-                error: "Load failed — expected JSON, got text/html",
-              },
-              {
-                label: "Hydration mismatch (#418)",
-                desc: "Server and client render different output — React throws error #418",
-                error: "Minified React error #418",
-              },
-              {
-                label: "Simulate redeploy",
-                desc: "Multi-step: snapshot hashes, rebuild, demonstrate old URLs returning HTML",
-                error: "All of the above",
-              },
-            ].map((scenario) => (
-              <div
-                key={scenario.label}
-                className="flex items-start gap-4 p-3 rounded bg-gray-900/50 border border-gray-800"
-              >
-                <span className="text-cyan-400 font-mono text-sm mt-0.5 shrink-0">
-                  {scenario.label}
-                </span>
-                <div>
-                  <p className="text-gray-400 text-sm">{scenario.desc}</p>
-                  <p className="text-gray-500 text-xs mt-1 font-mono">
-                    → {scenario.error}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
+      <div className="grid grid-cols-2 gap-px bg-gray-300 mb-12">
+        <a
+          href="/showcase/broken"
+          className="block p-6 bg-red-50 hover:bg-red-100 border-2 border-black active:translate-y-px"
+        >
+          <span className="text-sm font-bold text-red-600">&rarr; Broken Mode</span>
+          <p className="text-xs text-gray-600 mt-2 leading-relaxed">
+            <span className="text-red-600">single-page-application</span> fallback.
+            Every missing asset returns index.html as text/html.
+          </p>
+        </a>
 
-        <section>
-          <h2 className="text-xl font-semibold text-white mb-4">How the fix works</h2>
-          <div className="p-4 rounded bg-gray-900/50 border border-gray-800">
-            <pre className="text-sm text-gray-300 font-mono whitespace-pre-wrap">{`const STATIC_FILE_EXTENSIONS = new Set([
+        <a
+          href="/showcase/fixed"
+          className="block p-6 bg-green-50 hover:bg-green-100 border-2 border-black -ml-px active:translate-y-px"
+        >
+          <span className="text-sm font-bold text-green-700">&rarr; Fixed Mode</span>
+          <p className="text-xs text-gray-600 mt-2 leading-relaxed">
+            Worker middleware returns proper 404 for static asset extensions,
+            SPA fallback only for navigation routes.
+          </p>
+        </a>
+      </div>
+
+      <section className="mb-12">
+        <h2 className="text-sm font-bold uppercase mb-4 tracking-wide">Error Scenarios</h2>
+        <div className="border border-black divide-y divide-black">
+          {([
+            ["Load old chunk", "Inject <script> pointing to non-existent hash &rarr; browser gets HTML"],
+            ["Import old module", "Dynamic import() of missing chunk &rarr; server returns HTML"],
+            ["Fetch API &rarr; HTML", "fetch('/api/...') where worker serves index.html instead of JSON"],
+            ["Hydration mismatch (#418)", "Server and client render different output &rarr; React error #418"],
+            ["Simulate redeploy", "Multi-step: snapshot hashes, rebuild, old URLs returning HTML"],
+          ] as const).map(([label, desc]) => (
+            <div className="p-3 flex items-start gap-3" key={label}>
+              <span className="text-xs font-bold text-black w-36 shrink-0">{label}</span>
+              <span className="text-xs text-gray-600" dangerouslySetInnerHTML={{ __html: desc }} />
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section>
+        <h2 className="text-sm font-bold uppercase mb-4 tracking-wide">The Fix</h2>
+        <pre className="text-xs border border-black p-4 bg-gray-50 overflow-x-auto">{`const STATIC_FILE_EXTENSIONS = new Set([
   ".js", ".mjs", ".cjs", ".css", ".map", ".json",
   ".png", ".jpg", ".svg", ".ico", ".woff2", ...
 ]);
@@ -102,11 +68,9 @@ if (hasStaticFileExtension(url.pathname)) {
   return new Response("Not Found", { status: 404 });
 }
 
-// Otherwise serve index.html for SPA routes
+// navigation routes -> serve index.html
 return env.ASSETS.fetch(new Request("/index.html", ...));`}</pre>
-          </div>
-        </section>
-      </div>
+      </section>
     </div>
   );
 }
