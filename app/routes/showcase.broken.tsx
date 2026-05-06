@@ -26,21 +26,37 @@ function ShowcaseContent() {
             <span className="text-red-600">&#x2717;</span> Broken Mode
           </h1>
           <p className="text-xs text-gray-600 mt-1">
-            <span className="text-red-600">not_found_handling = "single-page-application"</span>
-            &nbsp;&mdash; every unmatched request returns index.html
+            Simulates <span className="text-red-600">not_found_handling = "single-page-application"</span>
+            &nbsp;fallback &mdash; Worker returns index.html for every missing request
           </p>
         </div>
-        <a
-          href="/showcase/fixed"
-          className="text-xs px-3 py-1.5 border border-neutral-800 bg-green-50 hover:bg-green-100 active:translate-y-px"
-        >
-          Fixed mode &rarr;
-        </a>
+        <div className="flex gap-2">
+          <a
+            href="/showcase/fixed"
+            className="text-xs px-3 py-1.5 border border-neutral-800 bg-yellow-50 hover:bg-yellow-100 active:translate-y-px"
+          >
+            Fixed &rarr;
+          </a>
+          <a
+            href="/showcase/advanced"
+            className="text-xs px-3 py-1.5 border border-neutral-800 bg-green-50 hover:bg-green-100 active:translate-y-px"
+          >
+            Advanced &rarr;
+          </a>
+        </div>
+      </div>
+
+      <div className="mb-8 p-4 border border-neutral-800 bg-red-50 text-xs text-gray-700 leading-relaxed">
+        <strong className="text-red-600">Classic SPA pitfall:</strong>
+        The Worker serves <span className="text-red-600">index.html</span> for every request that doesn&apos;t
+        match an existing asset&mdash;including <span className="text-red-600">.js</span> chunks,
+        <span className="text-red-600">.css</span> files, and API calls.
+        Click the buttons to trigger real browser errors.
       </div>
 
       <div className="border border-neutral-800 divide-y divide-neutral-800 mb-8">
         <button
-          onClick={() => triggerOldChunkLoad(addEvent)}
+          onClick={() => triggerOldChunkLoad()}
           className="w-full text-left p-4 bg-red-50 hover:bg-red-100 active:translate-y-px"
         >
           <span className="text-sm font-bold text-red-600">Load old chunk</span>

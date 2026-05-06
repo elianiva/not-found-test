@@ -5,22 +5,21 @@ export default function Index() {
         <div className="flex items-center gap-2 mb-4">
           <span className="text-xl">☁️</span>
           <h1 className="text-lg font-bold uppercase tracking-wide">
-            CF Workers SPA Bug Showcase
+            CF Workers SPA Routing Showcase
           </h1>
         </div>
         <p className="text-sm leading-relaxed text-gray-600">
-          Interactive demo of the classic Cloudflare Workers SPA pitfall:
-          when <span className="text-red-600">not_found_handling = "single-page-application"</span>
-          {" "}serves HTML for every missing asset&mdash;including JS chunks, CSS files, and API calls.
+          Three modes comparing SPA routing strategies on Cloudflare Workers&mdash;
+          from the classic pitfall to advanced routing control.
         </p>
       </header>
 
-      <div className="grid grid-cols-2 gap-px bg-gray-300 mb-12">
+      <div className="grid grid-cols-3 gap-px bg-gray-300 mb-12">
         <a
           href="/showcase/broken"
           className="block p-6 bg-red-50 hover:bg-red-100 border border-neutral-800 active:translate-y-px"
         >
-          <span className="text-sm font-bold text-red-600">&rarr; Broken Mode</span>
+          <span className="text-sm font-bold text-red-600">&rarr; Broken</span>
           <p className="text-xs text-gray-600 mt-2 leading-relaxed">
             <span className="text-red-600">single-page-application</span> fallback.
             Every missing asset returns index.html as text/html.
@@ -29,12 +28,23 @@ export default function Index() {
 
         <a
           href="/showcase/fixed"
+          className="block p-6 bg-yellow-50 hover:bg-yellow-100 border border-neutral-800 -ml-px active:translate-y-px"
+        >
+          <span className="text-sm font-bold text-yellow-700">&rarr; Fixed</span>
+          <p className="text-xs text-gray-600 mt-2 leading-relaxed">
+            Worker returns 404 for static file extensions, SPA fallback for the rest.
+            Still invokes Worker on every non-navigation miss.
+          </p>
+        </a>
+
+        <a
+          href="/showcase/advanced"
           className="block p-6 bg-green-50 hover:bg-green-100 border border-neutral-800 -ml-px active:translate-y-px"
         >
-          <span className="text-sm font-bold text-green-700">&rarr; Fixed Mode</span>
+          <span className="text-sm font-bold text-green-700">&rarr; Advanced</span>
           <p className="text-xs text-gray-600 mt-2 leading-relaxed">
-            Worker middleware returns proper 404 for static asset extensions,
-            SPA fallback only for navigation routes.
+            <span className="text-green-700">run_worker_first</span> routes only /api/* to Worker.
+            Platform handles navigation SPA fallback directly.
           </p>
         </a>
       </div>
@@ -43,7 +53,7 @@ export default function Index() {
         <h2 className="text-sm font-bold uppercase mb-4 tracking-wide">Error Scenarios</h2>
         <div className="border border-neutral-800 divide-y divide-neutral-800">
           {([
-            ["Load old chunk", "Inject <script> pointing to non-existent hash &rarr; browser gets HTML"],
+            ["Load old chunk", "Inject &lt;script&gt; pointing to non-existent hash &rarr; browser gets HTML"],
             ["Import old module", "Dynamic import() of missing chunk &rarr; server returns HTML"],
             ["Fetch API &rarr; HTML", "fetch('/api/...') where worker serves index.html instead of JSON"],
             ["Hydration mismatch (#418)", "Server and client render different output &rarr; React error #418"],
@@ -57,19 +67,40 @@ export default function Index() {
         </div>
       </section>
 
+      <section className="mb-12">
+        <h2 className="text-sm font-bold uppercase mb-4 tracking-wide">Config Comparison</h2>
+        <div className="grid grid-cols-3 gap-px bg-gray-300 text-xs">
+          <div className="p-4 bg-red-50">
+            <h3 className="font-bold text-red-600 mb-2">Broken</h3>
+            <pre className="text-[10px] leading-relaxed">{`not_found_handling =
+  "single-page-application"
+// no Worker middleware`}</pre>
+          </div>
+          <div className="p-4 bg-yellow-50">
+            <h3 className="font-bold text-yellow-700 mb-2">Fixed</h3>
+            <pre className="text-[10px] leading-relaxed">{`not_found_handling = "none"
+// Worker runs for ALL requests
+// checks static file extensions`}</pre>
+          </div>
+          <div className="p-4 bg-green-50">
+            <h3 className="font-bold text-green-700 mb-2">Advanced</h3>
+            <pre className="text-[10px] leading-relaxed">{`run_worker_first = ["/api/*"]
+not_found_handling =
+  "single-page-application"
+// platform handles navigation`}</pre>
+          </div>
+        </div>
+      </section>
+
       <section>
-        <h2 className="text-sm font-bold uppercase mb-4 tracking-wide">The Fix</h2>
-        <pre className="text-xs border border-neutral-800 p-4 bg-gray-50 overflow-x-auto">{`const STATIC_FILE_EXTENSIONS = new Set([
-  ".js", ".mjs", ".cjs", ".css", ".map", ".json",
-  ".png", ".jpg", ".svg", ".ico", ".woff2", ...
-]);
-
-if (hasStaticFileExtension(url.pathname)) {
-  return new Response("Not Found", { status: 404 });
-}
-
-// navigation routes -> serve index.html
-return env.ASSETS.fetch(new Request("/index.html", ...));`}</pre>
+        <h2 className="text-sm font-bold uppercase mb-4 tracking-wide">How Advanced Routing Works</h2>
+        <pre className="text-xs border border-neutral-800 p-4 bg-gray-50 overflow-x-auto leading-relaxed">{`wrangler.toml
+├── run_worker_first = ["/api/*"]
+│   └── /api/*           → Worker handles
+├── not_found_handling
+│   └── navigation routes → platform serves index.html (no Worker cost)
+└── everything else
+    └── missing static assets (non-navigation) → Worker returns 404`}</pre>
       </section>
     </div>
   );

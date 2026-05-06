@@ -6,6 +6,5 @@ main = "./workers/app.ts"
 [assets]
 directory = "./build/client"
 not_found_handling = "single-page-application"
-
-[vars]
-BUG_MODE = "broken"
+binding = "ASSETS"
+run_worker_first = ["/api/*"]
