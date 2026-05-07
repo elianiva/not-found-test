@@ -18,7 +18,7 @@ function getOrSetVisitorId(request: Request, response: Response): Response {
   const match = cookies.match(new RegExp(`(?:^|;\\s*)${VISITOR_COOKIE}=([^;]*)`));
   if (match) return response;
 
-  const id = crypto.randomUUID();
+  const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
   const clone = new Response(response.body, response);
   clone.headers.append(
     "Set-Cookie",
