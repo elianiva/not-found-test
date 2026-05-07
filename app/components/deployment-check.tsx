@@ -1,13 +1,14 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 type Status = { type: "idle" } | { type: "hash"; hash: string } | { type: "chunk-error"; error: string };
 
 export function DeploymentCheck() {
   const [status, setStatus] = useState<Status>({ type: "idle" });
-  const [fetches, setFetches] = useState<{ hash: string; time: number }[]>([]);
+  const chunkUrlRef = useRef<string | null>(null);
+  const [history, setHistory] = useState<Status[]>([]);
 
   useEffect(() => {
-    // Set a unique visitor cookie if missing (used for version affinity via Transform Rule)
+    // Set a unique visitor cookie if missing (for version affinity via Transform Rule)
     if (!document.cookie.includes("_vid=")) {
       const id = crypto.randomUUID();
       document.cookie = `_vid=${id}; Path=/; Max-Age=86400; SameSite=Lax`;
@@ -16,7 +17,9 @@ export function DeploymentCheck() {
     let cancelled = false;
     import("virtual:deployment-hash")
       .then((mod) => {
-        if (!cancelled) setStatus({ type: "hash", hash: mod.DEPLOYMENT_HASH });
+        if (cancelled) return;
+        chunkUrlRef.current = mod.getChunkUrl();
+        setStatus({ type: "hash", hash: mod.DEPLOYMENT_HASH });
       })
       .catch((e: Error) => {
         if (!cancelled) setStatus({ type: "chunk-error", error: e.message });
@@ -26,25 +29,20 @@ export function DeploymentCheck() {
     };
   }, []);
 
-  const handleCheck = async () => {
+  const handleCheck = useCallback(async () => {
+    const url = chunkUrlRef.current;
+    if (!url) return;
+
     try {
-      const res = await fetch(`/deploy-check?t=${Date.now()}`);
-      if (!res.ok) {
-        setFetches((prev) => [
-          ...prev,
-          { hash: `HTTP ${res.status}`, time: Date.now() },
-        ]);
-        return;
-      }
-      const body = (await res.json()) as { hash: string; time: number };
-      setFetches((prev) => [...prev, body]);
+      const mod = await import(/* @vite-ignore */ `${url}?v=${Date.now()}`);
+      setHistory((prev) => [...prev, { type: "hash", hash: mod.DEPLOYMENT_HASH }]);
     } catch (e: any) {
-      setFetches((prev) => [
+      setHistory((prev) => [
         ...prev,
-        { hash: `ERR: ${e.message}`, time: Date.now() },
+        { type: "chunk-error", error: e.message ?? String(e) },
       ]);
     }
-  };
+  }, []);
 
   return (
     <div className="border-b-2 border-neutral-800 bg-white">
@@ -70,33 +68,29 @@ export function DeploymentCheck() {
 
           <button
             onClick={handleCheck}
-            className="px-5 py-2 text-xs font-bold uppercase tracking-widest border-2 border-neutral-800 bg-white hover:bg-neutral-800 hover:text-white active:translate-y-0.5 transition-colors"
+            disabled={!chunkUrlRef.current}
+            className="px-5 py-2 text-xs font-bold uppercase tracking-widest border-2 border-neutral-800 bg-white hover:bg-neutral-800 hover:text-white active:translate-y-0.5 transition-colors disabled:opacity-30 disabled:pointer-events-none"
           >
             Re-check
           </button>
         </div>
 
-        {/* Fetch history — rows */}
-        {fetches.length > 0 && (
+        {/* History — rows */}
+        {history.length > 0 && (
           <div className="space-y-1">
-            {fetches.map((f, i) => (
+            {history.map((r, i) => (
               <div key={i} className="flex items-baseline gap-3">
-                <span className="text-[11px] font-mono text-neutral-400 w-6 text-right">
+                <span className="text-[11px] font-mono text-neutral-400 w-6 text-right shrink-0">
                   {i + 1}
                 </span>
-                {f.hash.startsWith("HTTP") || f.hash.startsWith("ERR") ? (
+                {r.type === "chunk-error" ? (
                   <span className="text-base font-mono text-red-600">
-                    {f.hash}
+                    CHUNK ERROR: {r.error}
                   </span>
                 ) : (
-                  <>
-                    <span className="text-xl font-mono font-bold tracking-tight text-green-700">
-                      {f.hash}
-                    </span>
-                    <span className="text-xs font-mono text-neutral-500">
-                      @ {new Date(f.time).toLocaleTimeString()}
-                    </span>
-                  </>
+                  <span className="text-xl font-mono font-bold tracking-tight text-green-700">
+                    {r.hash}
+                  </span>
                 )}
               </div>
             ))}

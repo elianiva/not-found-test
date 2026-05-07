@@ -13,7 +13,10 @@ function virtualDeploymentHash(): Plugin {
     load(id) {
       if (id === "\0virtual:deployment-hash") {
         const hash = crypto.randomUUID().slice(0, 8);
-        return `export const DEPLOYMENT_HASH = ${JSON.stringify(hash)};`;
+        return `
+  export const DEPLOYMENT_HASH = ${JSON.stringify(hash)};
+  export function getChunkUrl() { return import.meta.url; }
+`;
       }
     },
   };
