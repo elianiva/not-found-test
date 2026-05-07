@@ -11,22 +11,6 @@ const STATIC_FILE_EXTENSIONS = new Set([
   ".pdf", ".txt", ".xml", ".webmanifest",
 ]);
 
-const VISITOR_COOKIE = "_vid";
-
-function getOrSetVisitorId(request: Request, response: Response): Response {
-  const cookies = request.headers.get("Cookie") ?? "";
-  const match = cookies.match(new RegExp(`(?:^|;\\s*)${VISITOR_COOKIE}=([^;]*)`));
-  if (match) return response;
-
-  const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
-  const clone = new Response(response.body, response);
-  clone.headers.append(
-    "Set-Cookie",
-    `${VISITOR_COOKIE}=${id}; Path=/; Max-Age=86400; HttpOnly; SameSite=Lax`,
-  );
-  return clone;
-}
-
 function hasStaticFileExtension(pathname: string): boolean {
 
   const lastSegment = pathname.split("/").pop() ?? "";
@@ -74,8 +58,7 @@ export default {
           },
         },
       });
-      const response = await handleRemixRequest(request, loadContext);
-      return getOrSetVisitorId(request, response);
+      return await handleRemixRequest(request, loadContext);
     } catch (error) {
       console.error(error);
       return new Response("An unexpected error occurred", { status: 500 });

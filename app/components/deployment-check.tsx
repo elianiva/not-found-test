@@ -7,6 +7,12 @@ export function DeploymentCheck() {
   const [fetches, setFetches] = useState<{ hash: string; time: number }[]>([]);
 
   useEffect(() => {
+    // Set a unique visitor cookie if missing (used for version affinity via Transform Rule)
+    if (!document.cookie.includes("_vid=")) {
+      const id = crypto.randomUUID();
+      document.cookie = `_vid=${id}; Path=/; Max-Age=86400; SameSite=Lax`;
+    }
+
     let cancelled = false;
     import("virtual:deployment-hash")
       .then((mod) => {
