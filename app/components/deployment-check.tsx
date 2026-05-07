@@ -6,7 +6,6 @@ export function DeploymentCheck() {
   const [status, setStatus] = useState<Status>({ type: "idle" });
   const [fetches, setFetches] = useState<{ hash: string; time: number }[]>([]);
 
-  // Lazy import the hash module once on mount
   useEffect(() => {
     let cancelled = false;
     import("virtual:deployment-hash")
@@ -42,53 +41,62 @@ export function DeploymentCheck() {
   };
 
   return (
-    <div className="sticky top-0 z-50 w-full border-b-2 border-neutral-800 bg-white">
-      <div className="max-w-5xl mx-auto px-6 py-3 flex items-center gap-6">
-        {/* Badge — always visible, shows lazy-loaded hash */}
-        <div className="flex items-center gap-2 shrink-0">
-          <span className="text-[10px] font-bold uppercase tracking-widest text-neutral-500">
-            Deploy
-          </span>
-          {status.type === "idle" ? (
-            <span className="text-[10px] font-mono text-neutral-400">loading...</span>
-          ) : status.type === "hash" ? (
-            <span className="text-sm font-mono font-bold text-green-700">
-              {status.hash}
+    <div className="border-b-2 border-neutral-800 bg-white">
+      <div className="max-w-5xl mx-auto px-6 py-6 space-y-4">
+        {/* Top row: badge + button */}
+        <div className="flex items-center gap-6">
+          <div className="flex items-baseline gap-3">
+            <span className="text-xs font-bold uppercase tracking-widest text-neutral-500">
+              Deploy
             </span>
-          ) : (
-            <span className="text-[10px] font-mono text-red-600">
-              CHUNK ERROR: {status.error}
-            </span>
-          )}
+            {status.type === "idle" ? (
+              <span className="text-base font-mono text-neutral-400">loading...</span>
+            ) : status.type === "hash" ? (
+              <span className="text-2xl font-mono font-bold tracking-tight text-green-700">
+                {status.hash}
+              </span>
+            ) : (
+              <span className="text-base font-mono text-red-600">
+                CHUNK ERROR: {status.error}
+              </span>
+            )}
+          </div>
+
+          <button
+            onClick={handleCheck}
+            className="px-5 py-2 text-xs font-bold uppercase tracking-widest border-2 border-neutral-800 bg-white hover:bg-neutral-800 hover:text-white active:translate-y-0.5 transition-colors"
+          >
+            Re-check
+          </button>
         </div>
 
-        {/* Spacer */}
-        <div className="flex-1" />
-
-        {/* Check button */}
-        <button
-          onClick={handleCheck}
-          className="px-4 py-1 text-[10px] font-bold uppercase tracking-widest border border-neutral-800 bg-white hover:bg-neutral-800 hover:text-white active:translate-y-0.5 transition-colors shrink-0"
-        >
-          Re-check
-        </button>
-      </div>
-
-      {/* Fetch history */}
-      {fetches.length > 0 && (
-        <div className="border-t border-neutral-200 bg-neutral-50">
-          <div className="max-w-5xl mx-auto px-6 py-2 flex flex-wrap gap-x-4 gap-y-1">
+        {/* Fetch history — rows */}
+        {fetches.length > 0 && (
+          <div className="space-y-1">
             {fetches.map((f, i) => (
-              <span
-                key={i}
-                className="text-[10px] font-mono text-neutral-600"
-              >
-                [{i + 1}] {f.hash} @ {new Date(f.time).toLocaleTimeString()}
-              </span>
+              <div key={i} className="flex items-baseline gap-3">
+                <span className="text-[11px] font-mono text-neutral-400 w-6 text-right">
+                  {i + 1}
+                </span>
+                {f.hash.startsWith("HTTP") || f.hash.startsWith("ERR") ? (
+                  <span className="text-base font-mono text-red-600">
+                    {f.hash}
+                  </span>
+                ) : (
+                  <>
+                    <span className="text-xl font-mono font-bold tracking-tight text-green-700">
+                      {f.hash}
+                    </span>
+                    <span className="text-xs font-mono text-neutral-500">
+                      @ {new Date(f.time).toLocaleTimeString()}
+                    </span>
+                  </>
+                )}
+              </div>
             ))}
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }
