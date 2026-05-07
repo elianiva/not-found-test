@@ -1,7 +1,6 @@
 import { Links, Meta, Outlet, Scripts, ScrollRestoration } from "react-router";
 import type { Route } from "./+types/root";
 import "./app.css";
-import { DeploymentBadge } from "~/components/deployment-badge";
 import { DeploymentCheck } from "~/components/deployment-check";
 
 export const links: Route.LinksFunction = () => [];
@@ -26,10 +25,5 @@ export function Layout({ children }: { children: React.ReactNode }) {
 }
 
 export default function App() {
-  return (
-    <>
-      <Outlet />
-      <DeploymentBadge />
-    </>
-  );
+  return <Outlet />;
 }
